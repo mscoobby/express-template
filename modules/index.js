@@ -23,23 +23,20 @@ const initModulesRoutes = apiRouter => {
         acl.areAnyRolesAllowed(roles, path, req.method.toLowerCase())
             .then(isAllowed => {
                 if (isAllowed) {
-                    next();
-                    return true;
+                    return next();
                 }
 
                 return res
                     .status(403)
                     .json({ message: 'User is not authorized' });
             })
-            .catch(err => {
-                // An authorization error occurred
-                return res.status(500).send('Unexpected authorization error');
-            });
+            .catch(err =>
+                res.status(500).send(`Unexpected authorization error - ${err}`)
+            );
     };
 
     // Globbing routing files
     utility.getGlobbedPaths(assets.routes).forEach(routePath => {
-        console.log(path.resolve(routePath));
         require(path.resolve(routePath))(apiRouter, auth);
     });
 };

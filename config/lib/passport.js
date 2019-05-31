@@ -1,39 +1,74 @@
-const JsonStrategy = require('passport-json').Strategy;
+const LocalStrategy = require('passport-local').Strategy;
+const JwtStrategy = require('passport-jwt').Strategy;
+const ExtractJwt = require('passport-jwt').ExtractJwt;
+const config = require('config');
 
-/* NOTE: Pass passport object to this function when requiring the module */
-module.exports = function(passport) {
-    // =========================================================================
-    //                       Passport session setup
-    // =========================================================================
-    // Required for persistent login sessions
-    // Passport needs ability to serialize and unserialize users out of session
+const User = require('../../modules/user/user.model');
 
-    // Used to serialize the user for the session
-    passport.serializeUser(function(user, done) {
+module.exports = passport => {
+    passport.serializeUser((user, done) => {
         done(null, user.id);
     });
 
-    // Used to deserialize the user
-    passport.deserializeUser(function(id, done) {
-        Users.findById(id, function(err, user) {
+    passport.deserializeUser((id, done) => {
+        User.findById(id, (err, user) => {
             done(err, user);
         });
     });
 
+    /**
+     * Authenticate using JWT
+     */
     passport.use(
-        'json',
-        new JsonStrategy(
+        new JwtStrategy(
             {
-                usernameProp: 'user.username',
-                passwordProp: 'user.password'
+                jwtFromRequest: ExtractJwt.fromAuthHeaderWithScheme('Bearer'),
+                secretOrKey: config.get('TOKEN_SECRET')
             },
-            (username, password, done) => {
-                const user = {
-                    id: 1,
-                    name: 'Georgi',
-                    roles: ['admin']
-                };
-                done(null, user);
+            (jwtPayload, done) => {
+                User.findById(jwtPayload.sub, (err, user) => {
+                    if (err) {
+                        return done(err);
+                    }
+                    if (!user) {
+                        return done(null, false, {
+                            msg: 'User not found'
+                        });
+                    }
+                    return done(null, user);
+                });
+            }
+        )
+    );
+
+    /**
+     * Sign in using Email and Password.
+     */
+    passport.use(
+        new LocalStrategy(
+            { usernameField: 'email' },
+            (email, password, done) => {
+                User.findOne({ email: email.toLowerCase() }, (err, user) => {
+                    if (err) {
+                        return done(err);
+                    }
+                    if (!user) {
+                        return done(null, false, {
+                            message: `Email ${email} not found.`
+                        });
+                    }
+                    user.comparePassword(password, (err, isMatch) => {
+                        if (err) {
+                            return done(err);
+                        }
+                        if (isMatch) {
+                            return done(null, user);
+                        }
+                        return done(null, false, {
+                            msg: 'Invalid email or password.'
+                        });
+                    });
+                });
             }
         )
     );

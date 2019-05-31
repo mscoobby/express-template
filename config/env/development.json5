@@ -1,5 +1,10 @@
 {
     app: {
         title: 'Express Template - Development'
-    }
+    },
+    db: {
+        uri: 'mongodb://127.0.0.1:27017/template-dev',
+        debug: true
+    },
+    TOKEN_SECRET: 'Express Template'
 }
