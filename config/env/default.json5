@@ -1,0 +1,8 @@
+{
+    app: {
+        title: 'Express Template',
+        description: 'Template for Express applications',
+        keywords: 'Template, Express, Applications'
+    },
+    port: 9000
+}
